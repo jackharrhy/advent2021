@@ -9,25 +9,28 @@ defmodule Advent2021.Day2 do
     end)
   end
 
-  def move_part1({previous_horizontal, previous_depth}, direction, amount) do
-    case direction do
-      :forward -> {previous_horizontal + amount, previous_depth}
-      :down -> {previous_horizontal, previous_depth + amount}
-      :up -> {previous_horizontal, previous_depth - amount}
-    end
+  def move_part1({previous_horizontal, previous_depth}, :forward, amount) do
+    {previous_horizontal + amount, previous_depth}
   end
 
-  def move_part2({previous_horizontal, previous_depth, previous_aim}, direction, amount) do
-    case direction do
-      :down ->
-        {previous_horizontal, previous_depth, previous_aim + amount}
+  def move_part1({previous_horizontal, previous_depth}, :down, amount) do
+    {previous_horizontal, previous_depth + amount}
+  end
 
-      :up ->
-        {previous_horizontal, previous_depth, previous_aim - amount}
+  def move_part1({previous_horizontal, previous_depth}, :up, amount) do
+    {previous_horizontal, previous_depth - amount}
+  end
 
-      :forward ->
-        {previous_horizontal + amount, previous_depth + previous_aim * amount, previous_aim}
-    end
+  def move_part2({previous_horizontal, previous_depth, previous_aim}, :down, amount) do
+    {previous_horizontal, previous_depth, previous_aim + amount}
+  end
+
+  def move_part2({previous_horizontal, previous_depth, previous_aim}, :up, amount) do
+    {previous_horizontal, previous_depth, previous_aim - amount}
+  end
+
+  def move_part2({previous_horizontal, previous_depth, previous_aim}, :forward, amount) do
+    {previous_horizontal + amount, previous_depth + previous_aim * amount, previous_aim}
   end
 
   def apply_dive(input, acc, callback) do
