@@ -4,6 +4,8 @@ defmodule Advent2021 do
   @days %{
     "day1-part1" => {Advent2021.Day1, :part1},
     "day1-part2" => {Advent2021.Day1, :part2},
+    "day2-part1" => {Advent2021.Day2, :part1},
+    "day2-part2" => {Advent2021.Day2, :part2},
   }
 
   def cli do
