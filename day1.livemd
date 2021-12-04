@@ -1,0 +1,42 @@
+# Advent 2021 - Day 1
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.map(fn [x, y] -> y - x end)
+|> Enum.count(fn x -> x > 0 end)
+```
+
+## Part 2
+
+```elixir
+input
+|> Enum.chunk_every(3, 1, :discard)
+|> Enum.map(fn list -> Enum.sum(list) end)
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.map(fn [x, y] -> y - x end)
+|> Enum.count(fn x -> x > 0 end)
+```
