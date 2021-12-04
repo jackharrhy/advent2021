@@ -1,3 +1,5 @@
+<!-- vim: syntax=markdown -->
+
 # Advent 2021 - Day 2
 
 ## Setup
