@@ -1,0 +1,169 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 4
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+
+{numbers, list} = List.pop_at(input, 0)
+
+# pluck out the first row of numbers
+numbers =
+  numbers
+  |> String.split(",")
+  |> Enum.map(&String.to_integer(&1))
+
+# parse the remaining chunks of text into boards
+{_, boards} =
+  0..div(length(list) - 1, 6)
+  |> Enum.reduce({list, []}, fn _, {list, boards} ->
+    board =
+      Enum.take(list, 6)
+      |> Enum.map(&String.split(&1, " "))
+      |> List.flatten()
+      |> Enum.filter(&(&1 != ""))
+      |> Enum.map(&String.to_integer(&1))
+
+    list = Enum.drop(list, 6)
+    {list, [board | boards]}
+  end)
+
+# create 'players', holding some state if they have won / what their winning_number was
+players =
+  boards
+  |> Enum.map(fn board ->
+    %{
+      :winner => false,
+      :board => Enum.map(board, &%{:value => &1, :marked => false}),
+      :winning_number => nil
+    }
+  end)
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  @doc """
+  Check if a given board has won
+  """
+  def board_winning(board) do
+    horizontals = Enum.chunk_every(board, 5)
+
+    verticals =
+      0..4
+      |> Enum.map(fn offset ->
+        board
+        |> Enum.drop(offset)
+        |> Enum.take_every(5)
+      end)
+
+    Enum.concat([horizontals, verticals])
+    |> Enum.any?(fn line ->
+      Enum.all?(line, & &1.marked)
+    end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+%{:winner => winner, :final_number => final_number} =
+  numbers
+  |> Enum.reduce_while(players, fn number, players ->
+    players =
+      players
+      |> Enum.map(fn %{:board => board} ->
+        board =
+          Enum.map(board, fn tile ->
+            if tile.value == number do
+              %{tile | marked: true}
+            else
+              tile
+            end
+          end)
+
+        %{:winner => Part1.board_winning(board), :board => board}
+      end)
+
+    winner = Enum.find(players, & &1.winner)
+
+    if winner != nil do
+      {:halt, %{:winner => winner, :final_number => number}}
+    else
+      {:cont, players}
+    end
+  end)
+
+unmarked_sum =
+  Enum.filter(winner.board, &(&1.marked != true))
+  |> Enum.map(& &1.value)
+  |> Enum.sum()
+
+unmarked_sum * final_number
+```
+
+## Part 2
+
+```elixir
+players =
+  numbers
+  |> Enum.reduce(players, fn number, players ->
+    players =
+      players
+      |> Enum.map(fn player = %{:board => board} ->
+        board =
+          Enum.map(board, fn tile ->
+            if tile.value == number do
+              %{tile | marked: true}
+            else
+              tile
+            end
+          end)
+
+        if !player.winner && Part1.board_winning(board) do
+          %{player | :winner => true, :winning_number => number, :board => board}
+        else
+          if player.winner do
+            player
+          else
+            %{player | :board => board}
+          end
+        end
+      end)
+
+    players
+  end)
+
+winning_numbers = Enum.map(players, & &1.winning_number)
+
+least_epic_winning_number =
+  Enum.reverse(numbers)
+  |> Enum.find(&Enum.member?(winning_numbers, &1))
+
+least_epic = Enum.find(players, &(&1.winning_number == least_epic_winning_number))
+
+unmarked_sum =
+  Enum.filter(least_epic.board, &(&1.marked != true))
+  |> Enum.map(& &1.value)
+  |> Enum.sum()
+
+unmarked_sum * least_epic_winning_number
+```

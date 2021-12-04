@@ -85,35 +85,17 @@ defmodule Part2 do
     if length(list) == 1 do
       List.first(list)
     else
-      {zeros, ones} =
+      %{"0" => zeros, "1" => ones} =
         list
-        |> Enum.reduce(nil, fn line, acc ->
+        |> Enum.reduce(%{}, fn line, acc ->
           char =
             String.graphemes(line)
             |> Enum.at(index)
 
-          tuple =
-            if char == "0" do
-              {1, 0}
-            else
-              {0, 1}
-            end
-
-          if acc == nil do
-            tuple
-          else
-            {a0, a1} = acc
-            {t0, t1} = tuple
-            {a0 + t0, a1 + t1}
-          end
+          Map.update(acc, char, 1, &(&1 + 1))
         end)
 
-      keep =
-        if condition.(zeros, ones) do
-          "0"
-        else
-          "1"
-        end
+      keep = if condition.(zeros, ones), do: "0", else: "1"
 
       list = Enum.filter(list, fn line -> String.graphemes(line) |> Enum.at(index) == keep end)
 
