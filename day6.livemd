@@ -6,8 +6,13 @@
 
 ```elixir
 Mix.install([
+  {:vega_lite, "~> 0.1.2"},
   {:kino, github: "livebook-dev/kino"}
 ])
+```
+
+```elixir
+alias VegaLite, as: Vl
 ```
 
 ```elixir
@@ -15,14 +20,14 @@ input = Kino.Input.textarea("Please paste your input file:")
 ```
 
 ```elixir
-initial_lungfish =
+initial_lanternfish =
   input
   |> Kino.Input.read()
   |> String.trim()
   |> String.split(",")
   |> Enum.map(&String.to_integer(&1))
-  |> Enum.reduce(%{}, fn lungfish, acc ->
-    Map.get_and_update(acc, lungfish, fn val ->
+  |> Enum.reduce(%{}, fn lanternfish, acc ->
+    Map.get_and_update(acc, lanternfish, fn val ->
       next_val = if val == nil, do: 1, else: val + 1
       {val, next_val}
     end)
@@ -34,29 +39,38 @@ initial_lungfish =
 
 ```elixir
 defmodule Utils do
-  def grow_lungfish(lungfish, days) when days == 0 do
-    lungfish
+  def sum_lanternfish(lanternfish) do
+    lanternfish |> Map.values() |> Enum.sum()
   end
 
-  def grow_lungfish(lungfish, days) do
-    lungfish =
-      lungfish
+  def grow_lanternfish(_widget, lanternfish, days) when days == 0 do
+    lanternfish
+  end
+
+  def grow_lanternfish(widget, lanternfish, days) do
+    lanternfish =
+      lanternfish
       |> Enum.map(fn {k, v} -> {k - 1, v} end)
       |> Enum.into(%{})
 
-    lungfish =
-      if Map.has_key?(lungfish, -1) do
-        refresh_count = Map.get(lungfish, -1)
+    lanternfish =
+      if Map.has_key?(lanternfish, -1) do
+        refresh_count = Map.get(lanternfish, -1)
 
-        lungfish
+        lanternfish
         |> Map.drop([-1])
         |> Map.update(6, refresh_count, &(&1 + refresh_count))
         |> Map.update(8, refresh_count, &(&1 + refresh_count))
       else
-        lungfish
+        lanternfish
       end
 
-    grow_lungfish(lungfish, days - 1)
+    data = %{"day" => floor(days * -1), "number of fish" => sum_lanternfish(lanternfish)}
+    Kino.VegaLite.push(widget, data, window: 40)
+
+    Process.sleep(100)
+
+    grow_lanternfish(widget, lanternfish, days - 1)
   end
 end
 ```
@@ -64,15 +78,29 @@ end
 ## Part 1
 
 ```elixir
-Utils.grow_lungfish(initial_lungfish, 80)
-|> Map.values()
-|> Enum.sum()
+part1_widget =
+  Vl.new(width: 800, height: 300)
+  |> Vl.mark(:bar)
+  |> Vl.encode_field(:x, "day", type: :temporal)
+  |> Vl.encode_field(:y, "number of fish", type: :quantitative)
+  |> Kino.VegaLite.new()
+```
+
+```elixir
+Utils.grow_lanternfish(part1_widget, initial_lanternfish, 80) |> Utils.sum_lanternfish()
 ```
 
 ## Part 2
 
 ```elixir
-Utils.grow_lungfish(initial_lungfish, 256)
-|> Map.values()
-|> Enum.sum()
+part2_widget =
+  Vl.new(width: 800, height: 300)
+  |> Vl.mark(:bar)
+  |> Vl.encode_field(:x, "day", type: :temporal)
+  |> Vl.encode_field(:y, "number of fish", type: :quantitative)
+  |> Kino.VegaLite.new()
+```
+
+```elixir
+Utils.grow_lanternfish(part2_widget, initial_lanternfish, 256) |> Utils.sum_lanternfish()
 ```
