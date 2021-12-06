@@ -100,7 +100,7 @@ end
             end
           end)
 
-        %{:winner => Part1.board_winning(board), :board => board}
+        %{:winner => Utils.board_winning(board), :board => board}
       end)
 
     winner = Enum.find(players, & &1.winner)
@@ -138,7 +138,7 @@ players =
             end
           end)
 
-        if !player.winner && Part1.board_winning(board) do
+        if !player.winner && Utils.board_winning(board) do
           %{player | :winner => true, :winning_number => number, :board => board}
         else
           if player.winner do

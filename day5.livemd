@@ -1,0 +1,118 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 5
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line
+    |> String.split(" -> ")
+    |> Enum.map(fn point ->
+      point
+      |> String.split(",")
+      |> Enum.map(&String.to_integer(&1))
+      |> then(&List.to_tuple(&1))
+    end)
+    |> then(&List.to_tuple(&1))
+  end)
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def is_horizontal({{x0, _}, {x1, _}}) do
+    x0 == x1
+  end
+
+  def is_vertical({{_, y0}, {_, y1}}) do
+    y0 == y1
+  end
+
+  def direction_vector({{x0, y0}, {x1, y1}}) do
+    x =
+      cond do
+        x0 == x1 -> 0
+        x0 > x1 -> -1
+        x0 < x1 -> 1
+      end
+
+    y =
+      cond do
+        y0 == y1 -> 0
+        y0 > y1 -> -1
+        y0 < y1 -> 1
+      end
+
+    {x, y}
+  end
+
+  def draw_point(board, point) do
+    Map.get_and_update(board, point, fn val ->
+      next_val = if val == nil, do: 1, else: val + 1
+      {val, next_val}
+    end)
+    |> elem(1)
+  end
+
+  def draw_line(board, direction_vector = {dx, dy}, line) do
+    {p0 = {p0x, p0y}, p1} = line
+    board = draw_point(board, p0)
+
+    if p0 == p1 do
+      board
+    else
+      next_p0 = {p0x + dx, p0y + dy}
+      draw_line(board, direction_vector, {next_p0, p1})
+    end
+  end
+
+  def draw_line(board, line) do
+    vector = direction_vector(line)
+    draw_line(board, vector, line)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+# filter out non-horizontal and non-vertical lines
+straight_lines =
+  lines
+  |> Enum.filter(&(Utils.is_horizontal(&1) || Utils.is_vertical(&1)))
+
+overlapping_points = Enum.reduce(straight_lines, %{}, &Utils.draw_line(&2, &1))
+
+overlapping_points
+|> Map.values()
+|> Enum.filter(&(&1 > 1))
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+overlapping_points = Enum.reduce(lines, %{}, &Utils.draw_line(&2, &1))
+
+overlapping_points
+|> Map.values()
+|> Enum.filter(&(&1 > 1))
+|> Enum.count()
+```
