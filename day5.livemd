@@ -71,16 +71,14 @@ defmodule Utils do
     |> elem(1)
   end
 
-  def draw_line(board, direction_vector = {dx, dy}, line) do
-    {p0 = {p0x, p0y}, p1} = line
-    board = draw_point(board, p0)
+  def draw_line(board, _direction_vector, {p0, p1}) when p0 == p1 do
+    draw_point(board, p0)
+  end
 
-    if p0 == p1 do
-      board
-    else
-      next_p0 = {p0x + dx, p0y + dy}
-      draw_line(board, direction_vector, {next_p0, p1})
-    end
+  def draw_line(board, direction_vector = {dx, dy}, {p0 = {p0x, p0y}, p1}) do
+    board = draw_point(board, p0)
+    next_p0 = {p0x + dx, p0y + dy}
+    draw_line(board, direction_vector, {next_p0, p1})
   end
 
   def draw_line(board, line) do
