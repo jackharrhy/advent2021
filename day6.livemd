@@ -1,0 +1,78 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 6
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+initial_lungfish =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer(&1))
+  |> Enum.reduce(%{}, fn lungfish, acc ->
+    Map.get_and_update(acc, lungfish, fn val ->
+      next_val = if val == nil, do: 1, else: val + 1
+      {val, next_val}
+    end)
+    |> elem(1)
+  end)
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def grow_lungfish(lungfish, days) when days == 0 do
+    lungfish
+  end
+
+  def grow_lungfish(lungfish, days) do
+    lungfish =
+      lungfish
+      |> Enum.map(fn {k, v} -> {k - 1, v} end)
+      |> Enum.into(%{})
+
+    lungfish =
+      if Map.has_key?(lungfish, -1) do
+        refresh_count = Map.get(lungfish, -1)
+
+        lungfish
+        |> Map.drop([-1])
+        |> Map.update(6, refresh_count, &(&1 + refresh_count))
+        |> Map.update(8, refresh_count, &(&1 + refresh_count))
+      else
+        lungfish
+      end
+
+    grow_lungfish(lungfish, days - 1)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+Utils.grow_lungfish(initial_lungfish, 80)
+|> Map.values()
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+Utils.grow_lungfish(initial_lungfish, 256)
+|> Map.values()
+|> Enum.sum()
+```
