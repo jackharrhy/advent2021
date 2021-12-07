@@ -68,7 +68,7 @@ defmodule Utils do
     data = %{"day" => floor(days * -1), "number of fish" => sum_lanternfish(lanternfish)}
     Kino.VegaLite.push(widget, data, window: 40)
 
-    Process.sleep(100)
+    Process.sleep(25)
 
     grow_lanternfish(widget, lanternfish, days - 1)
   end

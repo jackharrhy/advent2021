@@ -1,0 +1,82 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 7
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+crabs =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer(&1))
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def average(enumerable) do
+    div(Enum.sum(enumerable), length(enumerable))
+  end
+
+  def test_fuel(crabs, calculator, initial_guess, direction, last_fuel) do
+    fuel = calculator.(crabs, initial_guess + direction)
+
+    if fuel < last_fuel do
+      test_fuel(crabs, calculator, initial_guess + direction, direction, fuel)
+    else
+      last_fuel
+    end
+  end
+
+  def best_possible_fuel(crabs, calculator) do
+    initial_guess = average(crabs)
+    average_fuel = calculator.(crabs, initial_guess)
+
+    righthand_best_fuel = test_fuel(crabs, calculator, initial_guess, 1, average_fuel)
+    lefthand_best_fuel = test_fuel(crabs, calculator, initial_guess, -1, average_fuel)
+
+    Enum.sort([righthand_best_fuel, lefthand_best_fuel]) |> List.first()
+  end
+end
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def calculate_fuel(crabs, target) do
+    crabs |> Enum.map(&abs(&1 - target)) |> Enum.sum()
+  end
+end
+
+Utils.best_possible_fuel(crabs, &Part1.calculate_fuel/2)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def calculate_fuel(crabs, target) do
+    crabs
+    |> Enum.map(fn position ->
+      target..position |> Enum.map(&abs(&1 - target)) |> Enum.sum()
+    end)
+    |> Enum.sum()
+  end
+end
+
+Utils.best_possible_fuel(crabs, &Part2.calculate_fuel/2)
+```
