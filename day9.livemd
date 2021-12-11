@@ -1,0 +1,120 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 9
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+grid =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line
+    |> String.graphemes()
+    |> Enum.map(&String.to_integer(&1))
+  end)
+
+x_len = grid |> Enum.at(0) |> length()
+y_len = grid |> length()
+
+data = %{grid: grid, x_len: x_len, y_len: y_len}
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def surronding_matrix() do
+    [
+      # up
+      {0, -1},
+      # down
+      {0, 1},
+      # left
+      {-1, 0},
+      # right
+      {1, 0}
+    ]
+  end
+
+  def surround(%{:grid => grid, :x_len => x_len, :y_len => y_len}, {x, y}) do
+    Enum.map(surronding_matrix(), fn {x_mod, y_mod} ->
+      x = x + x_mod
+      y = y + y_mod
+
+      cond do
+        x < 0 || x >= x_len -> {x, y, :infinity}
+        y < 0 || y >= y_len -> {x, y, :infinity}
+        true -> {x, y, grid |> Enum.at(y) |> Enum.at(x)}
+      end
+    end)
+  end
+
+  def find_smallest_at_point(data, point, smallest_known_value) do
+    {x, y, least_value} =
+      surround(data, point)
+      |> Enum.sort(fn {_, _, a}, {_, _, b} -> a <= b end)
+      |> List.first()
+
+    if least_value >= smallest_known_value do
+      {x, y, smallest_known_value}
+    else
+      find_smallest_at_point(data, {x, y}, least_value)
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+grid
+|> Enum.with_index()
+|> Enum.map(fn {row, y} ->
+  row
+  |> Enum.with_index()
+  |> Enum.map(fn {_, x} ->
+    Utils.find_smallest_at_point(data, {x, y}, :infinity)
+  end)
+end)
+|> List.flatten()
+|> MapSet.new()
+|> Enum.map(fn {_, _, value} -> value end)
+|> Enum.map(&(&1 + 1))
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+grid
+|> Enum.with_index()
+|> Enum.map(fn {row, y} ->
+  row
+  |> Enum.with_index()
+  |> Enum.filter(fn {value, _} -> value != 9 end)
+  |> Enum.map(fn {_, x} ->
+    {{x, y}, Utils.find_smallest_at_point(data, {x, y}, :infinity)}
+  end)
+end)
+|> List.flatten()
+|> Enum.group_by(fn {_, lowest_point} -> lowest_point end)
+|> Map.values()
+|> Enum.map(&Enum.count(&1))
+|> Enum.sort()
+|> Enum.reverse()
+|> Enum.take(3)
+|> Enum.reduce(1, fn value, acc -> value * acc end)
+```

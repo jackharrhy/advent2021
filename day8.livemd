@@ -1,0 +1,240 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 8
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+parsed =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line |> String.split(" | ") |> Enum.map(&String.split(&1, " "))
+  end)
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def string_to_mapset(string) do
+    string
+    |> String.split("")
+    |> Enum.filter(&(&1 !== ""))
+    |> MapSet.new()
+  end
+end
+```
+
+## Part 1
+
+```elixir
+unique_segments = %{
+  1 => 2,
+  4 => 4,
+  7 => 3,
+  8 => 7
+}
+
+segment_count_expected = Map.values(unique_segments)
+
+output = parsed |> Enum.map(&Enum.at(&1, 1))
+
+Enum.reduce(output, 0, fn output_line, acc ->
+  valid_outputs =
+    Enum.count(output_line, fn line ->
+      Enum.any?(segment_count_expected, &(String.length(line) == &1))
+    end)
+
+  acc + valid_outputs
+end)
+```
+
+## Part 2
+
+```elixir
+all_letters = "abcdefg"
+
+all_letters_list =
+  all_letters
+  |> String.split("")
+  |> Enum.filter(&(&1 !== ""))
+
+all_letters_mapset =
+  all_letters_list
+  |> MapSet.new()
+
+{all_letters, all_letters_list, all_letters_mapset}
+```
+
+```elixir
+possibilities = Enum.map(all_letters_list, &{&1, all_letters_mapset}) |> Map.new()
+```
+
+```elixir
+unique_segments = %{
+  1 => 2,
+  4 => 4,
+  7 => 3,
+  8 => 7
+}
+
+number_to_segment = %{
+  0 => %{
+    "a" => true,
+    "b" => true,
+    "c" => true,
+    "d" => false,
+    "e" => true,
+    "f" => true,
+    "g" => true
+  },
+  1 => %{
+    "a" => false,
+    "b" => false,
+    "c" => true,
+    "d" => false,
+    "e" => false,
+    "f" => true,
+    "g" => false
+  },
+  2 => %{
+    "a" => true,
+    "b" => false,
+    "c" => true,
+    "d" => false,
+    "e" => true,
+    "f" => false,
+    "g" => false
+  },
+  3 => %{
+    "a" => false,
+    "b" => false,
+    "c" => false,
+    "d" => false,
+    "e" => false,
+    "f" => false,
+    "g" => false
+  },
+  4 => %{
+    "a" => false,
+    "b" => true,
+    "c" => true,
+    "d" => true,
+    "e" => false,
+    "f" => true,
+    "g" => false
+  },
+  4 => %{
+    "a" => false,
+    "b" => true,
+    "c" => true,
+    "d" => true,
+    "e" => false,
+    "f" => true,
+    "g" => false
+  },
+  4 => %{
+    "a" => false,
+    "b" => true,
+    "c" => true,
+    "d" => true,
+    "e" => false,
+    "f" => true,
+    "g" => false
+  },
+  7 => %{
+    "a" => true,
+    "b" => false,
+    "c" => true,
+    "d" => false,
+    "e" => false,
+    "f" => true,
+    "g" => false
+  },
+  8 => %{
+    "a" => true,
+    "b" => true,
+    "c" => true,
+    "d" => true,
+    "e" => true,
+    "f" => true,
+    "g" => true
+  },
+  9 => %{
+    "a" => true,
+    "b" => true,
+    "c" => true,
+    "d" => true,
+    "e" => false,
+    "f" => true,
+    "g" => true
+  }
+}
+```
+
+```elixir
+first_line = parsed |> List.first() |> List.flatten()
+```
+
+```elixir
+# 1, 4, 7, 8
+
+one = Utils.string_to_mapset("ab")
+four = Utils.string_to_mapset("eafb")
+seven = Utils.string_to_mapset("dab")
+eight = Utils.string_to_mapset("acedgfb")
+
+{one, four, seven, eight}
+```
+
+```elixir
+negatives = [
+  {1, {one, MapSet.difference(all_letters_mapset, one)}},
+  {4, {four, MapSet.difference(all_letters_mapset, four)}},
+  {7, {seven, MapSet.difference(all_letters_mapset, seven)}},
+  {8, {eight, MapSet.difference(all_letters_mapset, eight)}}
+]
+```
+
+```elixir
+possibilities
+```
+
+```elixir
+narrowed_down =
+  Enum.reduce(negatives, possibilities, fn {number, {positive, negative}}, acc ->
+    Map.map(acc, fn {key, mapset} ->
+      if !number_to_segment[number][key] do
+        MapSet.difference(mapset, positive)
+      else
+        MapSet.difference(mapset, negative)
+      end
+    end)
+  end)
+```
+
+```elixir
+acedgfb = 8
+cdfbe = 5
+gcdfa = 2
+fbcad = 3
+dab = 7
+cefabd = 9
+cdfgeb = 6
+eafb = 4
+cagedb = 0
+ab = 1
+```
