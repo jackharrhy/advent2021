@@ -1,0 +1,87 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 10
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(&String.graphemes(&1))
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+end
+```
+
+## Part 1
+
+```elixir
+point_lookup = %{
+  ")" => 3,
+  "]" => 57,
+  "}" => 1197,
+  ">" => 25137
+}
+```
+
+```elixir
+defmodule Part1 do
+  def validate(input) do
+    returned =
+      Enum.reduce_while(input, [], fn char, stack ->
+        push = fn -> {:cont, [char | stack]} end
+
+        pop = fn expected ->
+          [head | tail] = stack
+
+          case head do
+            ^expected -> {:cont, tail}
+            _ -> {:halt, char}
+          end
+        end
+
+        case char do
+          "(" -> push.()
+          "[" -> push.()
+          "{" -> push.()
+          "<" -> push.()
+          ")" -> pop.("(")
+          "]" -> pop.("[")
+          "}" -> pop.("{")
+          ">" -> pop.("<")
+        end
+      end)
+
+    if is_list(returned), do: {:ok, nil}, else: {:error, returned}
+  end
+end
+
+input
+|> Enum.map(&Part1.validate(&1))
+|> Enum.filter(fn {status, _} -> status == :error end)
+|> Enum.map(fn {_, char} -> point_lookup[char] end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+
+```
