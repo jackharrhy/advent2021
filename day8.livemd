@@ -31,8 +31,7 @@ parsed =
 defmodule Utils do
   def string_to_mapset(string) do
     string
-    |> String.split("")
-    |> Enum.filter(&(&1 !== ""))
+    |> String.graphemes()
     |> MapSet.new()
   end
 end
@@ -41,200 +40,71 @@ end
 ## Part 1
 
 ```elixir
-unique_segments = %{
-  1 => 2,
-  4 => 4,
-  7 => 3,
-  8 => 7
-}
+parsed
+|> Enum.map(fn [_ | output] -> output end)
+|> List.flatten()
+|> Enum.count(fn string ->
+  len = String.length(string)
 
-segment_count_expected = Map.values(unique_segments)
-
-output = parsed |> Enum.map(&Enum.at(&1, 1))
-
-Enum.reduce(output, 0, fn output_line, acc ->
-  valid_outputs =
-    Enum.count(output_line, fn line ->
-      Enum.any?(segment_count_expected, &(String.length(line) == &1))
-    end)
-
-  acc + valid_outputs
+  len == 2 or len == 4 or len == 3 or len == 7
 end)
 ```
 
 ## Part 2
 
-```elixir
-all_letters = "abcdefg"
+This part 2 had me pretty stumped...
 
-all_letters_list =
-  all_letters
-  |> String.split("")
-  |> Enum.filter(&(&1 !== ""))
-
-all_letters_mapset =
-  all_letters_list
-  |> MapSet.new()
-
-{all_letters, all_letters_list, all_letters_mapset}
-```
+Used some pointers from https://github.com/nint8835/AdventOfCode2021/blob/main/Day8/Day8.fsx in the production of this solution, thanks Riley!
 
 ```elixir
-possibilities = Enum.map(all_letters_list, &{&1, all_letters_mapset}) |> Map.new()
-```
+all_outputs =
+  for [input, output] <- parsed do
+    everything = [input | output] |> List.flatten()
 
-```elixir
-unique_segments = %{
-  1 => 2,
-  4 => 4,
-  7 => 3,
-  8 => 7
-}
+    known_digits = %{
+      1 => everything |> Enum.find(&(String.length(&1) == 2)) |> Utils.string_to_mapset(),
+      4 => everything |> Enum.find(&(String.length(&1) == 4)) |> Utils.string_to_mapset(),
+      7 => everything |> Enum.find(&(String.length(&1) == 3)) |> Utils.string_to_mapset(),
+      8 => everything |> Enum.find(&(String.length(&1) == 7)) |> Utils.string_to_mapset()
+    }
 
-number_to_segment = %{
-  0 => %{
-    "a" => true,
-    "b" => true,
-    "c" => true,
-    "d" => false,
-    "e" => true,
-    "f" => true,
-    "g" => true
-  },
-  1 => %{
-    "a" => false,
-    "b" => false,
-    "c" => true,
-    "d" => false,
-    "e" => false,
-    "f" => true,
-    "g" => false
-  },
-  2 => %{
-    "a" => true,
-    "b" => false,
-    "c" => true,
-    "d" => false,
-    "e" => true,
-    "f" => false,
-    "g" => false
-  },
-  3 => %{
-    "a" => false,
-    "b" => false,
-    "c" => false,
-    "d" => false,
-    "e" => false,
-    "f" => false,
-    "g" => false
-  },
-  4 => %{
-    "a" => false,
-    "b" => true,
-    "c" => true,
-    "d" => true,
-    "e" => false,
-    "f" => true,
-    "g" => false
-  },
-  4 => %{
-    "a" => false,
-    "b" => true,
-    "c" => true,
-    "d" => true,
-    "e" => false,
-    "f" => true,
-    "g" => false
-  },
-  4 => %{
-    "a" => false,
-    "b" => true,
-    "c" => true,
-    "d" => true,
-    "e" => false,
-    "f" => true,
-    "g" => false
-  },
-  7 => %{
-    "a" => true,
-    "b" => false,
-    "c" => true,
-    "d" => false,
-    "e" => false,
-    "f" => true,
-    "g" => false
-  },
-  8 => %{
-    "a" => true,
-    "b" => true,
-    "c" => true,
-    "d" => true,
-    "e" => true,
-    "f" => true,
-    "g" => true
-  },
-  9 => %{
-    "a" => true,
-    "b" => true,
-    "c" => true,
-    "d" => true,
-    "e" => false,
-    "f" => true,
-    "g" => true
-  }
-}
-```
+    intersection_check = [known_digits[1], known_digits[4], known_digits[7], known_digits[8]]
 
-```elixir
-first_line = parsed |> List.first() |> List.flatten()
-```
+    scrambled_to_value =
+      everything
+      |> Enum.map(fn value ->
+        set = Utils.string_to_mapset(value)
 
-```elixir
-# 1, 4, 7, 8
+        intersections =
+          Enum.map(intersection_check, fn check ->
+            MapSet.intersection(check, set) |> Enum.count()
+          end)
+          |> List.to_tuple()
 
-one = Utils.string_to_mapset("ab")
-four = Utils.string_to_mapset("eafb")
-seven = Utils.string_to_mapset("dab")
-eight = Utils.string_to_mapset("acedgfb")
+        case intersections do
+          {2, 2, 2, 2} -> {set, 1}
+          {1, 2, 2, 5} -> {set, 2}
+          {2, 3, 3, 5} -> {set, 3}
+          {2, 4, 2, 4} -> {set, 4}
+          {1, 3, 2, 5} -> {set, 5}
+          {1, 3, 2, 6} -> {set, 6}
+          {2, 2, 3, 3} -> {set, 7}
+          {2, 4, 3, 7} -> {set, 8}
+          {2, 4, 3, 6} -> {set, 9}
+          {2, 3, 3, 6} -> {set, 0}
+          _ -> nil
+        end
+      end)
+      |> Map.new()
 
-{one, four, seven, eight}
-```
-
-```elixir
-negatives = [
-  {1, {one, MapSet.difference(all_letters_mapset, one)}},
-  {4, {four, MapSet.difference(all_letters_mapset, four)}},
-  {7, {seven, MapSet.difference(all_letters_mapset, seven)}},
-  {8, {eight, MapSet.difference(all_letters_mapset, eight)}}
-]
-```
-
-```elixir
-possibilities
-```
-
-```elixir
-narrowed_down =
-  Enum.reduce(negatives, possibilities, fn {number, {positive, negative}}, acc ->
-    Map.map(acc, fn {key, mapset} ->
-      if !number_to_segment[number][key] do
-        MapSet.difference(mapset, positive)
-      else
-        MapSet.difference(mapset, negative)
-      end
+    output
+    |> Enum.map(fn value ->
+      Map.get(scrambled_to_value, Utils.string_to_mapset(value))
+      |> Integer.to_string()
     end)
-  end)
-```
+    |> Enum.join("")
+    |> String.to_integer()
+  end
 
-```elixir
-acedgfb = 8
-cdfbe = 5
-gcdfa = 2
-fbcad = 3
-dab = 7
-cefabd = 9
-cdfgeb = 6
-eafb = 4
-cagedb = 0
-ab = 1
+Enum.sum(all_outputs)
 ```
