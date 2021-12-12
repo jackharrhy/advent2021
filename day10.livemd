@@ -27,22 +27,6 @@ input =
 
 ```elixir
 defmodule Utils do
-end
-```
-
-## Part 1
-
-```elixir
-point_lookup = %{
-  ")" => 3,
-  "]" => 57,
-  "}" => 1197,
-  ">" => 25137
-}
-```
-
-```elixir
-defmodule Part1 do
   def validate(input) do
     returned =
       Enum.reduce_while(input, [], fn char, stack ->
@@ -69,12 +53,23 @@ defmodule Part1 do
         end
       end)
 
-    if is_list(returned), do: {:ok, nil}, else: {:error, returned}
+    if is_list(returned), do: {:ok, returned}, else: {:error, returned}
   end
 end
+```
+
+## Part 1
+
+```elixir
+point_lookup = %{
+  ")" => 3,
+  "]" => 57,
+  "}" => 1197,
+  ">" => 25137
+}
 
 input
-|> Enum.map(&Part1.validate(&1))
+|> Enum.map(&Utils.validate(&1))
 |> Enum.filter(fn {status, _} -> status == :error end)
 |> Enum.map(fn {_, char} -> point_lookup[char] end)
 |> Enum.sum()
@@ -83,5 +78,24 @@ input
 ## Part 2
 
 ```elixir
+point_lookup = %{
+  "(" => 1,
+  "[" => 2,
+  "{" => 3,
+  "<" => 4
+}
 
+scores =
+  input
+  |> Enum.map(&Utils.validate(&1))
+  |> Enum.filter(fn {status, _} -> status == :ok end)
+  |> Enum.map(fn {_, remaining_stack} ->
+    Enum.reduce(remaining_stack, 0, fn char, acc ->
+      acc * 5 + point_lookup[char]
+    end)
+  end)
+  |> Enum.sort()
+
+scores
+|> Enum.at(length(scores) |> div(2))
 ```
