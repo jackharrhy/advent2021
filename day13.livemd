@@ -1,0 +1,42 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 13
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n\n")
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+end
+```
+
+## Part 1
+
+```elixir
+
+```
+
+## Part 2
+
+```elixir
+
+```

@@ -1,0 +1,134 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 12
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn line -> line |> String.split("-") end)
+
+all = input |> List.flatten() |> MapSet.new()
+
+tree =
+  Enum.map(all, fn node ->
+    neighbors =
+      input
+      |> Enum.filter(fn [from, to] -> node == from or node == to end)
+      |> List.flatten()
+      |> Enum.filter(fn n -> n !== node and n !== "start" end)
+      |> MapSet.new()
+
+    {node, neighbors}
+  end)
+  |> Map.new()
+  |> Map.update!("end", fn _ -> MapSet.new() end)
+```
+
+## Utils
+
+````elixir
+defmodule Utils do
+  def display(paths) do
+    Kino.Markdown.new(~s"""
+    Answer: `#{Enum.count(paths)}`
+
+    ---
+
+    Paths:
+    ```
+    #{Enum.map(paths, fn line -> "#{Enum.join(line, ",")}\n" end)}
+    ```
+    """)
+  end
+
+  def upcase?(string), do: string == String.upcase(string)
+  def downcase?(string), do: string == String.downcase(string)
+
+  def paths(_tree, "end", path, _visited, _second_visit_used), do: [["end" | path]]
+
+  def paths(tree, position, path, visited, second_visit_used) do
+    neighbors = tree[position]
+
+    visited = Map.update(visited, position, 1, &(&1 + 1))
+
+    cannot_visit =
+      visited
+      |> Enum.filter(fn {k, _} -> !upcase?(k) and k in neighbors end)
+      |> Enum.map(fn {k, _} -> k end)
+      |> MapSet.new()
+
+    visitable = MapSet.difference(neighbors, cannot_visit)
+
+    nothing_left_to_visit =
+      MapSet.size(visitable) == 0 and
+        !second_visit_used and
+        MapSet.size(cannot_visit) == 0
+
+    cond do
+      nothing_left_to_visit == true ->
+        [[position | path]]
+
+      !second_visit_used ->
+        path1 =
+          Enum.reduce(visitable, [], fn node, acc ->
+            paths(tree, node, [position | path], visited, false) ++ acc
+          end)
+
+        path2 =
+          Enum.reduce(cannot_visit, [], fn node, acc ->
+            paths(tree, node, [position | path], visited, true) ++ acc
+          end)
+
+        path1 ++ path2
+
+      true ->
+        Enum.reduce(visitable, [], fn node, acc ->
+          paths(tree, node, [position | path], visited, second_visit_used) ++ acc
+        end)
+    end
+  end
+end
+````
+
+## Part 1
+
+```elixir
+part1_paths =
+  Utils.paths(tree, "start", [], %{}, true)
+  |> Enum.filter(fn [head | _] -> head == "end" end)
+  |> Enum.map(fn path -> path |> Enum.reverse() end)
+  |> Enum.reverse()
+```
+
+```elixir
+Utils.display(part1_paths)
+```
+
+## Part 2
+
+```elixir
+part2_paths =
+  Utils.paths(tree, "start", [], %{}, false)
+  |> Enum.filter(fn [head | _] -> head == "end" end)
+  |> Enum.map(fn path -> path |> Enum.reverse() end)
+  |> Enum.reverse()
+```
+
+```elixir
+Utils.display(part2_paths)
+```
