@@ -1,0 +1,131 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 11
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+list_of_lists =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line |> String.graphemes() |> Enum.map(&String.to_integer(&1)) |> Enum.with_index()
+  end)
+  |> Enum.with_index()
+
+grid =
+  Enum.reduce(list_of_lists, %{}, fn {row, y}, acc ->
+    row =
+      Enum.reduce(row, %{}, fn {value, x}, acc ->
+        Map.merge(acc, %{{x, y} => value})
+      end)
+
+    Map.merge(row, acc)
+  end)
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def run(grid, condition) do
+    step(grid, 0, 0, condition)
+  end
+
+  def step(grid, step_count, flash_count, condition) do
+    {grid, flashed} =
+      Map.map(grid, fn {_, v} -> v + 1 end)
+      |> process_flashes()
+
+    grid = Map.map(grid, fn {_, v} -> if v >= 10, do: 0, else: v end)
+
+    step_count = step_count + 1
+
+    if condition.(step_count, flashed) do
+      {step_count, flash_count}
+    else
+      flash_count = Enum.count(flashed) + flash_count
+
+      step(grid, step_count, flash_count, condition)
+    end
+  end
+
+  def flash(grid, point = {x, y}, flashed) do
+    inc = fn grid, x, y ->
+      if Map.has_key?(grid, {x, y}) do
+        Map.update!(grid, {x, y}, &(&1 + 1))
+      else
+        grid
+      end
+    end
+
+    grid =
+      grid
+      |> inc.(x - 1, y - 1)
+      |> inc.(x - 1, y)
+      |> inc.(x - 1, y + 1)
+      |> inc.(x, y - 1)
+      |> inc.(x, y + 1)
+      |> inc.(x + 1, y - 1)
+      |> inc.(x + 1, y)
+      |> inc.(x + 1, y + 1)
+
+    flashed = MapSet.put(flashed, point)
+
+    {grid, flashed}
+  end
+
+  def process_flashes(grid, flashed \\ MapSet.new()) do
+    flash_points =
+      Map.filter(grid, fn {point, value} ->
+        already_flashed = point in flashed
+        greater_than_cap = value >= 10
+        !already_flashed and greater_than_cap
+      end)
+
+    {new_grid, flashed} =
+      Enum.reduce(flash_points, {grid, flashed}, fn {point, _}, {grid, flashed} ->
+        flash(grid, point, flashed)
+      end)
+
+    if grid == new_grid do
+      {new_grid, flashed}
+    else
+      process_flashes(new_grid, flashed)
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+{_, total_flashes} = Utils.run(grid, fn step_count, _ -> step_count > 100 end)
+
+total_flashes
+```
+
+## Part 2
+
+```elixir
+count_of_all_points = Enum.count(Map.keys(grid))
+
+{step_count, _} =
+  Utils.run(grid, fn _, flashes ->
+    Enum.count(flashes) == count_of_all_points
+  end)
+
+step_count
+```
