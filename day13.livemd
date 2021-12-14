@@ -15,28 +15,121 @@ input = Kino.Input.textarea("Please paste your input file:")
 ```
 
 ```elixir
-input =
+[positions, instructions] =
   input
   |> Kino.Input.read()
   |> String.trim()
   |> String.split("\n\n")
+  |> Enum.map(&String.split(&1, "\n"))
+
+instructions =
+  instructions
+  |> Enum.map(fn instruction ->
+    [axis, position] =
+      instruction
+      |> String.replace("fold along ", "")
+      |> String.split("=")
+
+    {String.to_atom(axis), String.to_integer(position)}
+  end)
+
+positions =
+  positions
+  |> Enum.map(fn point ->
+    [x, y] =
+      point
+      |> String.split(",")
+      |> Enum.map(fn scalar -> String.to_integer(scalar) end)
+
+    {x, y}
+  end)
+
+{positions, instructions}
 ```
 
 ## Utils
 
-```elixir
+````elixir
 defmodule Utils do
+  def max_x(positions) do
+    positions
+    |> Enum.max_by(fn {x, _} -> x end)
+    |> then(&elem(&1, 0))
+  end
+
+  def max_y(positions) do
+    positions
+    |> Enum.max_by(fn {_, y} -> y end)
+    |> then(&elem(&1, 1))
+  end
+
+  def display(positions) do
+    mx = max_x(positions)
+    my = max_y(positions)
+
+    text =
+      Enum.map(0..my, fn y ->
+        line =
+          Enum.map(0..mx, fn x ->
+            if Enum.find(positions, fn position -> position == {x, y} end) do
+              "##"
+            else
+              ".."
+            end
+          end)
+
+        "#{line}\n"
+      end)
+
+    Kino.Markdown.new(~s"""
+    ```
+    #{text}
+    ```
+    """)
+  end
+
+  def apply_fold(positions, {:y, amount}) do
+    positions
+    |> Enum.map(fn {x, y} ->
+      if y > amount do
+        {x, amount - (y - amount)}
+      else
+        {x, y}
+      end
+    end)
+    |> Enum.uniq()
+  end
+
+  def apply_fold(positions, {:x, amount}) do
+    positions
+    |> Enum.map(fn {x, y} ->
+      if x > amount do
+        {amount - (x - amount), y}
+      else
+        {x, y}
+      end
+    end)
+    |> Enum.uniq()
+  end
 end
-```
+````
 
 ## Part 1
 
 ```elixir
+first_instruction = List.first(instructions)
 
+positions
+|> Part1.apply_fold(first_instruction)
+|> Enum.count()
 ```
 
 ## Part 2
 
 ```elixir
-
+positions =
+  Enum.reduce(instructions, positions, fn instruction, positions ->
+    Utils.apply_fold(positions, instruction)
+  end)
+  |> Utils.display()
 ```
