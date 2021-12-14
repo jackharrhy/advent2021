@@ -36,18 +36,76 @@ rules =
 {input, rules}
 ```
 
-## Utils
+## Part 1
+
+Using the naive approach of _actually_ creating a linked list
 
 ```elixir
-defmodule Utils do
+defmodule Part1 do
   def step(input, rules) do
     partial =
       Enum.chunk_every(input, 2, 1, :discard)
-      |> Enum.flat_map(fn [left, right] ->
-        [left, Map.get(rules, {left, right})]
-      end)
+      |> Enum.flat_map(fn [left, right] -> [left, Map.get(rules, {left, right})] end)
 
     partial ++ [List.last(input)]
+  end
+
+  def run(input, rules, times) do
+    Enum.reduce(1..times, input, fn _, input -> step(input, rules) end)
+  end
+end
+
+result =
+  Part1.run(input, rules, 10)
+  |> Enum.group_by(& &1)
+  |> Map.values()
+  |> Enum.map(&Enum.count(&1))
+
+Enum.max(result) - Enum.min(result)
+```
+
+## Part 2
+
+Using the method of counting pairs!
+
+It may seem like you _have_ to keep track of the entire string to know how to go from one state to another, but think about it this way.
+
+If you have `CH -> B`, it will result in the string `CBH`, but the string `CBH` is actually pairs `CB` and `BH`.
+
+Using this logic, you _lose_ pair `CH`, but _gain_ pairs `CB` and `BH`!
+
+Therefore if you had 5 pairs of `CH`, in a given step, you'd _gain_ 5 pairs of `CB` and `BH`, and _lose_ 5 pairs of `CH`, but then gain how ever many `CH` was produced from other pairs that would produce `CH`.
+
+```elixir
+defmodule Part2 do
+  def step(input, rules) do
+    Enum.reduce(input, input, fn {{left, right}, amount}, acc ->
+      middle = Map.get(rules, {left, right})
+
+      inc = fn existing ->
+        if existing == nil do
+          {existing, amount}
+        else
+          {existing, existing + amount}
+        end
+      end
+
+      dec = fn existing ->
+        if existing == nil do
+          {existing, amount}
+        else
+          {existing, existing - amount}
+        end
+      end
+
+      acc
+      |> Map.get_and_update({left, middle}, inc)
+      |> elem(1)
+      |> Map.get_and_update({middle, right}, inc)
+      |> elem(1)
+      |> Map.get_and_update({left, right}, dec)
+      |> elem(1)
+    end)
   end
 
   def run(input, rules, times) do
@@ -56,28 +114,21 @@ defmodule Utils do
     end)
   end
 end
-```
 
-## Part 1
-
-```elixir
-part1 =
-  Utils.run(input, rules, 10)
+pair_count =
+  input
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.map(&List.to_tuple(&1))
   |> Enum.group_by(& &1)
+  |> Map.map(fn {_, v} -> Enum.count(v) end)
+  |> Part2.run(rules, 40)
+
+result =
+  pair_count
+  |> Enum.flat_map(fn {{left, right}, amount} -> [{left, amount}, {right, amount}] end)
+  |> Enum.group_by(fn {chemical, _} -> chemical end, fn {_, amount} -> amount end)
+  |> Map.map(fn {_, v} -> ceil(Enum.sum(v) / 2) end)
   |> Map.values()
-  |> Enum.map(&Enum.count(&1))
 
-Enum.max(part1) - Enum.min(part1)
-```
-
-## Part 2
-
-```elixir
-part2 =
-  Utils.run(input, rules, 40)
-  |> Enum.group_by(& &1)
-  |> Map.values()
-  |> Enum.map(&Enum.count(&1))
-
-Enum.max(part1) - Enum.min(part1)
+Enum.max(result) - Enum.min(result)
 ```
