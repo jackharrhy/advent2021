@@ -1,0 +1,83 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 14
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+[input, rules] =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n\n")
+
+input = String.graphemes(input)
+
+rules =
+  rules
+  |> String.split("\n")
+  |> Enum.map(fn rule ->
+    [pair, result] = rule |> String.split(" -> ")
+    pair = pair |> String.graphemes() |> List.to_tuple()
+    {pair, result}
+  end)
+  |> Map.new()
+
+{input, rules}
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def step(input, rules) do
+    partial =
+      Enum.chunk_every(input, 2, 1, :discard)
+      |> Enum.flat_map(fn [left, right] ->
+        [left, Map.get(rules, {left, right})]
+      end)
+
+    partial ++ [List.last(input)]
+  end
+
+  def run(input, rules, times) do
+    Enum.reduce(1..times, input, fn _, input ->
+      step(input, rules)
+    end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+part1 =
+  Utils.run(input, rules, 10)
+  |> Enum.group_by(& &1)
+  |> Map.values()
+  |> Enum.map(&Enum.count(&1))
+
+Enum.max(part1) - Enum.min(part1)
+```
+
+## Part 2
+
+```elixir
+part2 =
+  Utils.run(input, rules, 40)
+  |> Enum.group_by(& &1)
+  |> Map.values()
+  |> Enum.map(&Enum.count(&1))
+
+Enum.max(part1) - Enum.min(part1)
+```
