@@ -1,0 +1,183 @@
+<!-- vim: syntax=markdown -->
+
+# Advent 2021 - Day 15
+
+## Nightmare
+
+This day has got me pretty good... I should understand this, but I'm having a rough time actually building dijkstra's algorithm.
+
+Went down the path of making it faster with a priority queue, I don't think I correctly intergrated it with existing code, and it was also built using a linked list rather than a btree or something similar.
+
+I might just use libgraph and be done with it, hopefully coming back to clean it up later, but its now the 2nd day since this day, and I don't want to fall behind!
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"},
+  {:libgraph, github: "bitwalker/libgraph"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+grid =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line |> String.graphemes() |> Enum.map(&String.to_integer(&1))
+  end)
+```
+
+## Utils
+
+```elixir
+defmodule Utils do
+  def prepare_grid(grid) do
+    point_to_weight =
+      grid
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {row, y} ->
+        row |> Enum.with_index() |> Enum.map(fn {value, x} -> {{x, y}, value} end)
+      end)
+      |> Map.new()
+
+    points = Map.keys(point_to_weight)
+
+    max_x = points |> Enum.map(fn {x, _} -> x end) |> Enum.max()
+    max_y = points |> Enum.map(fn {x, _} -> x end) |> Enum.max()
+
+    bottom_right = {max_x, max_y}
+
+    %{point_to_weight: point_to_weight, points: points, bottom_right: bottom_right}
+  end
+end
+```
+
+```elixir
+defmodule PriorityQueue do
+  def new(priority_fn \\ fn a, b -> a > b end) do
+    %{list: [], size: 0, priority_fn: priority_fn}
+  end
+
+  defp place([], value, _priority_fn), do: [value]
+
+  defp place(list = [head | tail], value, priority_fn) do
+    if priority_fn.(value, head) do
+      [value | list]
+    else
+      [head | place(tail, value, priority_fn)]
+    end
+  end
+
+  def enqueue(queue = %{list: list, size: size, priority_fn: priority_fn}, value) do
+    list = place(list, value, priority_fn)
+
+    %{queue | list: list, size: size + 1}
+  end
+
+  def dequeue(queue = %{list: list, size: size}) do
+    if size == 0 do
+      {queue, nil}
+    else
+      [value | list] = list
+      {%{queue | list: list, size: size - 1}, value}
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def neighbors(points, {x, y}) do
+    top = {x, y - 1}
+    bottom = {x, y + 1}
+    left = {x - 1, y}
+    right = {x + 1, y}
+
+    Enum.reduce([top, bottom, left, right], [], fn p, acc ->
+      if p in points, do: [p | acc], else: acc
+    end)
+  end
+
+  def run(points, point_to_weight, unvisited, queue, distances) do
+    if queue.size == 0 do
+      distances
+    else
+      {queue, {least_point, existing_distance}} = PriorityQueue.dequeue(queue)
+
+      neighbors = neighbors(points, least_point)
+
+      {
+        distances,
+        queue
+      } =
+        Enum.reduce(neighbors, {distances, queue}, fn neighbor, {distances, queue} ->
+          current_distance = Map.get(distances, neighbor)
+          weight = Map.get(point_to_weight, neighbor)
+          new_distance = existing_distance + weight
+
+          if new_distance < current_distance do
+            PriorityQueue.enqueue(queue, {neighbor, new_distance})
+
+            {
+              distances |> Map.update!(neighbor, fn _ -> new_distance end),
+              queue
+            }
+          else
+            {distances, queue}
+          end
+        end)
+
+      unvisited = MapSet.delete(unvisited, least_point)
+
+      run(points, point_to_weight, unvisited, queue, distances)
+    end
+  end
+
+  def shortest_paths(points, point_to_weight, source) do
+    unvisited = MapSet.new(points)
+
+    queue =
+      PriorityQueue.new()
+      |> PriorityQueue.enqueue({source, 0})
+
+    distances =
+      points
+      |> Enum.map(fn point -> {point, :infinity} end)
+      |> Map.new()
+      |> Map.update!(source, fn _ -> 0 end)
+
+    run(points, point_to_weight, unvisited, queue, distances)
+  end
+end
+
+%{
+  points: points,
+  point_to_weight: point_to_weight,
+  bottom_right: bottom_right
+} = Utils.prepare_grid(grid)
+
+{time_taken, result} = :timer.tc(Part1, :shortest_paths, [points, point_to_weight, {0, 0}])
+
+%{time_taken: time_taken, result: result[bottom_right]}
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def expand_grid(grid) do
+    grid
+  end
+end
+
+Part2.expand_grid(grid)
+```
